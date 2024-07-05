@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -28,7 +30,6 @@ import (
 
 	"github.com/aus/proxyplease"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 
 	huproxy "github.com/google/huproxy/lib"
 )
@@ -66,7 +67,7 @@ func dialError(url string, resp *http.Response, err error) {
 		if *verbose {
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Warningf("Failed to read HTTP body: %v", err)
+				slog.Warn("Failed to read HTTP body", "error", err)
 			}
 			extra = "Body:\n" + string(b)
 		}
@@ -85,7 +86,7 @@ func main() {
 	url := flag.Arg(0)
 
 	if *verbose {
-		log.Infof("huproxyclient %s", huproxy.Version)
+		slog.Info("huproxyclient ", "version", huproxy.Version)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -150,7 +151,7 @@ func main() {
 				log.Fatal("non-binary websocket message received")
 			}
 			if _, err := io.Copy(os.Stdout, r); err != nil {
-				log.Errorf("Reading from websocket: %v", err)
+				slog.Error("Reading from websocket", "error", err)
 				cancel()
 			}
 		}
@@ -163,10 +164,10 @@ func main() {
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 			time.Now().Add(*writeTimeout)); err == websocket.ErrCloseSent {
 		} else if err != nil {
-			log.Errorf("Error sending 'close' message: %v", err)
+			slog.Error("Error sending 'close' message", "error", err)
 		}
 	} else if err != nil {
-		log.Errorf("reading from stdin: %v", err)
+		slog.Error("reading from stdin", "error", err)
 		cancel()
 	}
 

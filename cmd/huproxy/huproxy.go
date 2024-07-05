@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,13 +18,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 
 	huproxy "github.com/google/huproxy/lib"
 )
@@ -49,14 +50,14 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Warningf("Failed to upgrade to websockets: %v", err)
+		slog.Warn("Failed to upgrade to websockets", "error", err)
 		return
 	}
 	defer conn.Close()
 
 	s, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), *dialTimeout)
 	if err != nil {
-		log.Warningf("Failed to connect to %q:%q: %v", host, port, err)
+		slog.Warn("Failed to connect to", "host", host, "port", port, "error", err)
 		return
 	}
 	defer s.Close()
@@ -72,15 +73,15 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if err != nil {
-				log.Errorf("nextreader: %v", err)
+				slog.Error("nextreader", "error", err)
 				return
 			}
 			if mt != websocket.BinaryMessage {
-				log.Errorf("received non-binary websocket message")
+				slog.Error("received non-binary websocket message")
 				return
 			}
 			if _, err := io.Copy(s, r); err != nil {
-				log.Warningf("Reading from websocket: %v", err)
+				slog.Warn("Reading from websocket", "error", err)
 				cancel()
 			}
 		}
@@ -93,10 +94,10 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 			time.Now().Add(*writeTimeout)); err == websocket.ErrCloseSent {
 		} else if err != nil {
-			log.Warningf("Error sending close message: %v", err)
+			slog.Warn("Error sending close message", "error", err)
 		}
 	} else if err != nil {
-		log.Warningf("Reading from file: %v", err)
+		slog.Warn("Reading from file", "error", err)
 	}
 }
 
@@ -112,7 +113,7 @@ func main() {
 		},
 	}
 
-	log.Infof("huproxy %s", huproxy.Version)
+	slog.Info("huproxy", "version", huproxy.Version)
 	m := mux.NewRouter()
 	m.HandleFunc(fmt.Sprintf("/%s/{host}/{port}", *url), handleProxy)
 	s := &http.Server{

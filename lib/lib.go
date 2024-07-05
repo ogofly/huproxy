@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,8 @@ package lib
 import (
 	"context"
 	"io"
+	"log/slog"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
 
@@ -41,7 +41,7 @@ func File2WS(ctx context.Context, cancel func(), src io.Reader, dst *websocket.C
 		}
 		//log.Printf("->ws %d bytes: %q", len(b), string(b))
 		if err := dst.WriteMessage(websocket.BinaryMessage, b); err != nil {
-			log.Warningf("Writing websockt message: %v", err)
+			slog.Warn("Writing websockt message", "error", err)
 			return err
 		}
 	}
